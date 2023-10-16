@@ -5,6 +5,8 @@ Frontend  url - http://frontend2-dining-concierge.s3-website-us-east-1.amazonaws
 Teammates:
 Avina
 Thejaswini
+
+
 Commands used:
 
 For bulk load in elastic search:
