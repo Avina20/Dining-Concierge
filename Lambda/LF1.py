@@ -85,46 +85,46 @@ def validateSlots(location,cuisineType,date,time,numPeople,name,email):
     locs = ['nyc','manhattan','new york','brooklyn','new jersey']
     if location is not None and location.lower() not in locs:
         return buildValidationMessage(False,
-                                       'location',
-                                       'We are not supporting services in {}. Please enter neighborhood in Manhattan'.format(location))
+                                       'Location',
+                                       'We are not supporting services in {}. Please enter locations in New York'.format(location))
     
-    cuisines=['indian','mexican','japanese','french','cafes','italian']
+    cuisines=['indian','japanese','chinese']
     if cuisineType is not None and cuisineType.lower() not in cuisines:
         return buildValidationMessage(False,
-                                       'cuisine',
-                                       'We are not supporting services for {} food. Please choose among Indian, Mexican, Japanese, French, Cafes, and Italian'.format(cuisineType))
+                                       'Cuisine',
+                                       'We are not supporting services for {} food. Please choose among Indian, Chinese and Japanese'.format(cuisineType))
     
     if date is not None:
         if not isValidDate(date):
-            return buildValidationMessage(False, 'date', 'Invalid date! Sample input format: Today')
+            return buildValidationMessage(False, 'Date', 'Invalid date! Sample input format: Today')
         elif datetime.datetime.strptime(date, '%Y-%m-%d').date() < datetime.date.today():
-            return buildValidationMessage(False, 'date', 'The day has already passed ;)  Please enter a valid date.')
+            return buildValidationMessage(False, 'Date', 'The day has already passed ;)  Please enter a valid date.')
     if numPeople is not None:
         if int(numPeople) <=0 or int(numPeople)>10:
-            return buildValidationMessage(False,'peopleCount',"We can only accommodate 0-10 people! Please enter again.")
+            return buildValidationMessage(False,'NumberOfPeople',"We can only accommodate 0-10 people! Please enter again.")
     if time is not None:
         if len(time) != 5:
-            return buildValidationMessage(False, 'time', "Invalid time! Enter in proper format(eg 02:00 PM)")
+            return buildValidationMessage(False, 'Time', "Invalid time! Enter in proper format(eg 02:00 PM)")
         if datetime.datetime.strptime(date, '%Y-%m-%d').date() == datetime.date.today():
             if (int(time[0:2])<=(datetime.datetime.now().hour)):
-                return buildValidationMessage(False, 'time', "Invalid time! Enter Time after the present time")
+                return buildValidationMessage(False, 'Time', "Invalid time! Enter Time after the present time")
         for i in range(len(time)):
             if i == 2:
                 if time[i] != ":":
-                    return buildValidationMessage(False, 'time', "Invalid time! Enter in proper format(eg 02:00 PM)")
+                    return buildValidationMessage(False, 'Time', "Invalid time! Enter in proper format(eg 02:00 PM)")
             else:
                 if not time[i].isalnum():
-                    return buildValidationMessage(False, 'time', "Invalid time!Enter in proper format(eg 02:00 PM)")
+                    return buildValidationMessage(False, 'Time', "Invalid time!Enter in proper format(eg 02:00 PM)")
 
         hour, minute = time.split(':')
         hour = parse_int(hour)
         minute = parse_int(minute)
         if math.isnan(hour) or math.isnan(minute):
-            return buildValidationMessage(False, 'time', "Invalid time!")
+            return buildValidationMessage(False, 'Time', "Invalid time!")
     
     if email is not None:
         if not checkEmail(email):
-            return buildValidationMessage(False, 'phoneNumber', "Please enter a valid Email address!")
+            return buildValidationMessage(False, 'Email', "Please enter a valid Email address!")
             
             
     return buildValidationMessage(True, None, None)
@@ -151,14 +151,8 @@ def elicitSlot(session_attributes, intent_name, slots, slot_to_elicit, message):
                 'slotToElicit': slot_to_elicit,
                 'intentName' : intent_name,
                 'slots':slots,
-                'message':[message],
-                },
-            'recentIntentSummaryView':{
-                    'name': intent_name,
-                    'slots': slots
+                'message':message,
                 }
-            
-            
     }
     
 def DiningSuggestionsIntent(intent_request):
@@ -180,7 +174,7 @@ def DiningSuggestionsIntent(intent_request):
                 slots[validationResultForSlots['violatedSlot']] = None
                 print(validationResultForSlots['violatedSlot'])
                 return elicitSlot(session_attributes,
-                                        intent_request['interpretations'][0]['intent']['name'],
+                                        intent_request['currentIntent']['name'],
                                         slots,
                                         validationResultForSlots['violatedSlot'],
                                         validationResultForSlots['message'])

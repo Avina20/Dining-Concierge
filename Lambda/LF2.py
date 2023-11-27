@@ -6,31 +6,35 @@ from requests_aws4auth import AWS4Auth
 
 esHost= 'https://search-restaurants-t47odz7xkfcfq6yayryjt6ylvi.us-east-1.es.amazonaws.com'
 region = "us-east-1"
-index = "restaurant"
+index = 'restaurant'
 
 def getdatafromDBTable(table, key):
-    response = table.get_item(Key={'businessId':key}, TableName='yelp-restaurants')
+    print("getdatafromDBTable")
+    response = table.get_item(Key={'Id':key}, TableName='yelp-restaurants')
+    print("db response",response)
     name=response['Item']['Name']
-    location=response['Item']['Address']
+    location=response['Item']['address']
     return '{} located at {}'.format(name,location)
     
 def getRestaurantsfromES(cuisine):
+    print("getRestaurantsfromES")
     service = "es"
     credentials = boto3.Session().get_credentials()
     awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
-    # awsauth = AWS4Auth("tej","Tej1234!", region, service)
     # awsauth2 = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
     url = esHost + '/' + index + '/_search'
-    query = {"query": {"match": {"category": cuisine }}}
+    query = {"query": {"match": {"cuisine": cuisine }}}
     headers = { "Content-Type": "application/json" }
-    res = requests.get(url, auth=awsauth, headers=headers, data=json.dumps(query))
+    res = requests.post(url, auth=awsauth, headers=headers, data=json.dumps(query))
+    print("res1",res)
     res = res.text
     res = json.loads(res)
-
-    res = res["hits"]["hits"]
+    print("res",res)
+    res = res['hits']['hits']
     return res
     
 def sendSESMail(message,email):
+    print("sendSESMail")
     ses_client = boto3.client('ses', region_name=region)
     response = ses_client.send_email(
         Source='td2478@nyu.edu',
@@ -57,6 +61,7 @@ def sendSESMail(message,email):
     )
     
 def lambda_handler(event, context):
+    print("event",event)
     sqsUrl = "https://sqs.us-east-1.amazonaws.com/593489176864/DiningConceirge"
     sqs_client = boto3.client("sqs", region_name=region)
     response = sqs_client.receive_message(
@@ -65,15 +70,18 @@ def lambda_handler(event, context):
         WaitTimeSeconds=10,
         AttributeNames=['All'],
         MessageAttributeNames=[
-        'Name','Email','Cuisine','Location','NumberOfPeople','DiningDate','DiningTime'
+        'All'
         ]
     )
+    
+    print("sqs response",response)
     numOfMessages = len(response.get('Messages', []))
     
     if numOfMessages > 0:
         for message in response.get("Messages", []):
             messageAttributes = json.loads(message['Body'])
             # read parameters from event
+            print("testing",messageAttributes)
             name = messageAttributes['Name']
             cuisine = messageAttributes['Cuisine']
             date = messageAttributes['Date']
@@ -85,7 +93,7 @@ def lambda_handler(event, context):
         
             # call elastisearch to find random restaurants with given cuisine type
             elastisearchResults = getRestaurantsfromES(cuisine)
-            print(elastisearchResults)
+            print("elastisearchResults",elastisearchResults)
             # call dynamodb to elicit extra info for each restaurant identified
             dynamodb = boto3.resource('dynamodb')
             table = dynamodb.Table('yelp-restaurants')
@@ -93,7 +101,7 @@ def lambda_handler(event, context):
             count = 0
             for i in elastisearchResults:
                 count += 1
-                rid = i['_source']['RestaurantID']
+                rid = i['_id']
                 rest=getdatafromDBTable(table, rid)
                 rest = str(count) + ". " + rest
                 restaurantDetails.append(rest)
